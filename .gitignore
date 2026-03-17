@@ -1,3 +1,37 @@
+# Variáveis de ambiente
 .env
+*.env
+etl/.env
+frontend/*/.env
+
+# Python
 __pycache__/
-tmp/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Node.js
+node_modules/
+dist/
+build/
+.npm
+.eslintcache
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
