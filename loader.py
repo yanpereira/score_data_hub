@@ -3,39 +3,28 @@ from supabase import create_client, Client, ClientOptions
 from dotenv import load_dotenv
 
 load_dotenv()
-
-url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_KEY")
 opcoes = ClientOptions(schema="score")
-supabase: Client = create_client(url, key, options=opcoes)
+supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"), options=opcoes)
 
-def limpar_vazios(dados_lista):
-    """Converte strings vazias da API ('') em None (Null no banco) para evitar erros."""
-    for item in dados_lista:
+def mapear_e_limpar(dados):
+    if not dados: return []
+    for item in dados:
+        # Apenas converte strings vazias para None para o banco não dar erro de tipo numérico
         for k, v in item.items():
-            if v == "":
-                item[k] = None
-    return dados_lista
+            if v == "": item[k] = None
+    return dados
 
-def carregar_dados_puros(recebimentos_raw, pagamentos_raw):
-    print("\n☁️ Iniciando carga PURA para o Supabase (Schema: score)...")
-    
-    # Limpa strings vazias que a API envia
-    recebimentos_limpos = limpar_vazios(recebimentos_raw)
-    pagamentos_limpos = limpar_vazios(pagamentos_raw)
-    
-    if recebimentos_limpos:
-        try:
-            print(f"Enviando {len(recebimentos_limpos)} Recebimentos...")
-            supabase.table('recebimentos').upsert(recebimentos_limpos).execute()
-            print("✅ Recebimentos salvos com sucesso!")
-        except Exception as e:
-            print(f"❌ Erro ao salvar Recebimentos: {e}")
+def carregar_dados(tabela, dados_brutos):
+    if not dados_brutos:
+        print(f"⚠️ Sem dados para carregar em {tabela}.")
+        return
 
-    if pagamentos_limpos:
-        try:
-            print(f"Enviando {len(pagamentos_limpos)} Pagamentos...")
-            supabase.table('pagamentos').upsert(pagamentos_limpos).execute()
-            print("✅ Pagamentos salvos com sucesso!")
-        except Exception as e:
-            print(f"❌ Erro ao salvar Pagamentos: {e}")
+    print(f"☁️ Preparando carga para {tabela}...")
+    dados_prontos = mapear_e_limpar(dados_brutos)
+    
+    try:
+        # O upsert vai SOBRESCREVER os zeros/nulos antigos pelos IDs reais novos
+        supabase.table(tabela).upsert(dados_prontos).execute()
+        print(f"✅ Sucesso: {tabela} atualizada com {len(dados_prontos)} registros.")
+    except Exception as e:
+        print(f"❌ Erro ao carregar {tabela}: {e}")

@@ -1,20 +1,24 @@
-from extractor import extrair_financeiro
-from loader import carregar_dados_puros # Atualize o nome do import
+from extractor import extrair_financeiro, extrair_plano_contas, extrair_formas_pagamento
+from loader import carregar_dados
 
-def rodar_pipeline():
-    print("Iniciando o Pipeline ELT - eGestor para Supabase (Dados Puros)")
+def iniciar_sincronizacao():
+    print("=== INICIANDO PIPELINE DATA HUB ===")
     
-    data_ini = "2026-01-01"
-    data_fim = "2026-12-31"
+    # 1. Atualiza Tabelas de Apoio primeiro
+    carregar_dados("plano_contas", extrair_plano_contas())
+    carregar_dados("formas_pagamento", extrair_formas_pagamento())
     
-    # 1. Extract (Agora com o parâmetro 'fields' trazendo tudo)
-    recebimentos_raw = extrair_financeiro("recebimentos", data_ini, data_fim)
-    pagamentos_raw = extrair_financeiro("pagamentos", data_ini, data_fim)
+    # 2. Atualiza o Financeiro (Ajuste o período se precisar)
+    data_ini = "2023-01-01"
+    data_fim = "2026-12-31" 
     
-    # 2. Load (Joga nas tabelas separadas exatamente como a API mandou)
-    carregar_dados_puros(recebimentos_raw, pagamentos_raw)
+    recebimentos = extrair_financeiro("recebimentos", data_ini, data_fim)
+    carregar_dados("recebimentos", recebimentos)
     
-    print("\n🏁 Pipeline ELT finalizado com sucesso!")
+    pagamentos = extrair_financeiro("pagamentos", data_ini, data_fim)
+    carregar_dados("pagamentos", pagamentos)
+    
+    print("\n🏁 Pipeline finalizado com sucesso!")
 
 if __name__ == "__main__":
-    rodar_pipeline()
+    iniciar_sincronizacao()
