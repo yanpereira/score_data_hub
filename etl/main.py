@@ -1,10 +1,10 @@
-from extractor import extrair_financeiro, extrair_plano_contas, extrair_formas_pagamento
-from loader import carregar_dados
+from sources.egestor.extractor import extrair_financeiro, extrair_plano_contas, extrair_formas_pagamento
+from core.loader import carregar_dados
 
 def iniciar_sincronizacao():
     print("=== INICIANDO PIPELINE DATA HUB ===")
     
-    # 1. Atualiza Tabelas de Apoio primeiro
+    # 1. Atualiza Tabelas de Apoio do eGestor
     carregar_dados("plano_contas", extrair_plano_contas())
     carregar_dados("formas_pagamento", extrair_formas_pagamento())
     
@@ -20,5 +20,7 @@ def iniciar_sincronizacao():
     
     print("\n🏁 Pipeline finalizado com sucesso!")
 
+
 if __name__ == "__main__":
+
     iniciar_sincronizacao()

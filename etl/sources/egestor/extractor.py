@@ -2,7 +2,7 @@ import os
 import time
 import requests
 from dotenv import load_dotenv
-from auth_manager import get_valid_token
+from .auth_manager import get_valid_token
 
 load_dotenv()
 BASE_URL = os.getenv("EGESTOR_BASE_URL")

@@ -1,17 +1,11 @@
 import os
 import pandas as pd
 import numpy as np
-from supabase import create_client, Client, ClientOptions
+from core.loader import supabase
 from dotenv import load_dotenv
 
 # Carrega as variáveis de ambiente
 load_dotenv()
-
-# Inicializa o cliente apontando EXCLUSIVAMENTE para o schema 'score'
-url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_KEY")
-opcoes = ClientOptions(schema="score")
-supabase: Client = create_client(url, key, options=opcoes)
 
 def transformar_e_carregar_fluxo_caixa(recebimentos_raw, pagamentos_raw):
     print("\n⚙️ Iniciando transformação dos dados com Pandas...")
