@@ -20,8 +20,12 @@ const NAV_ITEMS = [
 
 export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
   const navigate = useNavigate();
-  // TODO: Implement actual admin check logic with Supabase Auth
-  const isAdmin = true; 
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const normalizedUsername = (currentUser?.username || "").toLowerCase();
+  const isAdmin = normalizedUsername === "yan";
+  const allowedDashboards: string[] = Array.isArray(currentUser?.dashboards) && currentUser.dashboards.length
+    ? currentUser.dashboards
+    : NAV_ITEMS.map((i) => i.id);
 
   return (
     <div className="fixed left-0 top-0 h-screen w-14 bg-card border-r border-border flex flex-col items-center py-4 gap-1 z-50">
@@ -43,7 +47,7 @@ export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
         <TooltipContent side="right" className="text-xs">Voltar ao Hub</TooltipContent>
       </Tooltip>
 
-      {NAV_ITEMS.map(({ id, icon: Icon, label }) => (
+      {NAV_ITEMS.filter(item => item.id === "home" || allowedDashboards.includes(item.id)).map(({ id, icon: Icon, label }) => (
         <Tooltip key={id} delayDuration={0}>
           <TooltipTrigger asChild>
             <button
@@ -64,7 +68,7 @@ export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
         </Tooltip>
       ))}
 
-      {/* Admin Menu - Only for administrators */}
+      {/* Admin Menu - Only for administrators (Yan) */}
       {isAdmin && (
         <div className="mt-auto border-t border-border pt-4 w-full flex flex-col items-center">
           <Tooltip delayDuration={0}>

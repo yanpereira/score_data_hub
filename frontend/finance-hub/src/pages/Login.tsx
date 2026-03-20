@@ -17,18 +17,66 @@ export default function Login() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulação de autenticação com as credenciais fornecidas
     setTimeout(() => {
-      if (username === "yan" && password === "dadosdev") {
-        localStorage.setItem("isAuthenticated", "true");
-        localStorage.setItem("userRole", "admin_max");
-        toast.success("Bem-vindo, Yan! Acesso concedido.");
-        navigate("/");
-      } else {
-        toast.error("Usuário ou senha incorretos.");
+      const normalizedUsername = username.trim().toLowerCase();
+      const typedPassword = password;
+
+      const storedUsersRaw = localStorage.getItem("app_users");
+      if (!storedUsersRaw) {
+        const initialUsers = [
+          {
+            id: "1",
+            username: "yan",
+            role: "admin",
+            modules: ["financeiro", "pdi", "rh"],
+            dashboards: ["home", "visao-geral", "dfc", "dre", "extrato", "indicadores"],
+          },
+          {
+            id: "2",
+            username: "henrique",
+            role: "usuario",
+            modules: ["financeiro"],
+            dashboards: ["home", "visao-geral", "extrato"],
+          },
+        ];
+        localStorage.setItem("app_users", JSON.stringify(initialUsers));
       }
+
+      const savedUsers = JSON.parse(localStorage.getItem("app_users") || "[]");
+      const user = savedUsers.find((u: any) => (u.username || "").toLowerCase() === normalizedUsername);
+
+      if (!user) {
+        toast.error("Usuário ou senha incorretos.");
+        setIsLoading(false);
+        return;
+      }
+
+      const pwdKey = `pwd_${normalizedUsername}`;
+      const storedPwd = localStorage.getItem(pwdKey);
+      const hasPasswordSet = typeof storedPwd === "string" && storedPwd.length > 0;
+
+      const isPasswordValid = hasPasswordSet ? storedPwd === typedPassword : typedPassword.length > 0;
+      if (!isPasswordValid) {
+        toast.error("Usuário ou senha incorretos.");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!hasPasswordSet) {
+        localStorage.setItem(pwdKey, typedPassword);
+      }
+
+      if (normalizedUsername === "yan") {
+        user.role = "admin";
+      }
+
+      localStorage.setItem("app_users", JSON.stringify(savedUsers));
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("currentUser", JSON.stringify(user));
+      toast.success(`Bem-vindo, ${user.username}!`);
+      navigate("/");
       setIsLoading(false);
-    }, 1000);
+    }, 800);
   };
 
   return (
@@ -76,6 +124,22 @@ export default function Login() {
               disabled={isLoading}
             >
               {isLoading ? "Validando..." : "Acessar Sistema"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full h-10 text-xs font-bold text-black/50"
+              onClick={() => {
+                const normalizedUsername = username.trim().toLowerCase();
+                if (!normalizedUsername) {
+                  toast.error("Informe o usuário para redefinir a senha.");
+                  return;
+                }
+                localStorage.removeItem(`pwd_${normalizedUsername}`);
+                toast.success("Senha redefinida. Faça login novamente.");
+              }}
+            >
+              Redefinir senha do usuário informado
             </Button>
           </form>
         </CardContent>

@@ -4,6 +4,7 @@ import { ModuleCard, AddModuleCard } from "@/components/hub/ModuleCard";
 
 const MODULES = [
   {
+    id: "financeiro",
     title: "Financeiro",
     description: "DFC, DRE, extratos e indicadores financeiros consolidados.",
     icon: DollarSign,
@@ -11,6 +12,7 @@ const MODULES = [
     accentColor: "bg-primary",
   },
   {
+    id: "pdi",
     title: "PD&I",
     description: "Pesquisa, desenvolvimento e inovação tecnológica.",
     icon: FlaskConical,
@@ -18,6 +20,7 @@ const MODULES = [
     accentColor: "bg-chart-blue",
   },
   {
+    id: "rh",
     title: "RH",
     description: "Gestão de pessoas, folha e indicadores de capital humano.",
     icon: Users,
@@ -27,6 +30,9 @@ const MODULES = [
 ];
 
 export default function Home() {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const allowedModules = currentUser.modules || [];
+
   return (
     <div className="min-h-screen bg-background">
       <HubHeader />
@@ -40,10 +46,10 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {MODULES.map((m) => (
+          {MODULES.filter(m => allowedModules.includes(m.id)).map((m) => (
             <ModuleCard key={m.title} {...m} />
           ))}
-          <AddModuleCard />
+          {currentUser.role === "admin" && <AddModuleCard />}
         </div>
       </main>
     </div>

@@ -7,9 +7,13 @@ import { CategoryCharts } from "./CategoryCharts";
 import { MonthlyChart } from "./MonthlyChart";
 import { DFCMatrix } from "./DFCMatrix";
 import { ExtratoTable } from "./ExtratoTable";
+import { AdminPanel } from "./AdminPanel";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { AlertCircle, Home, BarChart3, ShieldCheck } from "lucide-react";
+import { AlertCircle, Home, BarChart3, ShieldCheck, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 function DateRangeFilter({
   startDate, endDate, onStartChange, onEndChange
@@ -50,6 +54,14 @@ export function FinancialDashboard() {
   const [activeTab, setActiveTab] = useState("visao-geral");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("currentUser");
+    toast.info("Sessão encerrada.");
+    navigate("/login");
+  };
 
   // Determine dateField based on active tab
   const dateField: DateField = activeTab === "dre" ? "data_competencia" : "data_pagamento";
@@ -91,6 +103,9 @@ export function FinancialDashboard() {
               onStartChange={setStartDate}
               onEndChange={setEndDate}
             />
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-muted-foreground hover:text-red-500 transition-colors">
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </header>
 
@@ -147,15 +162,7 @@ export function FinancialDashboard() {
                 </div>
               )}
               {activeTab === "admin" && (
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-                  <div className="bg-primary/10 p-4 rounded-full">
-                    <ShieldCheck className="h-10 w-10 text-primary" />
-                  </div>
-                  <h2 className="text-xl font-bold">Painel Administrativo</h2>
-                  <p className="text-muted-foreground max-w-md">
-                    Este é um espaço reservado para configurações do sistema e gestão de usuários.
-                  </p>
-                </div>
+                <AdminPanel />
               )}
             </>
           ) : (
