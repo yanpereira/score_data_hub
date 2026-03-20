@@ -8,7 +8,7 @@ import { MonthlyChart } from "./MonthlyChart";
 import { DFCMatrix } from "./DFCMatrix";
 import { ExtratoTable } from "./ExtratoTable";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Home, BarChart3, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 function DateRangeFilter({
@@ -106,7 +106,18 @@ export function FinancialDashboard() {
             <DashboardSkeleton />
           ) : filteredData.length > 0 ? (
             <>
-              {activeTab === "visao-geral" || activeTab === "home" ? (
+              {activeTab === "home" && (
+                <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+                  <div className="bg-primary/10 p-4 rounded-full">
+                    <Home className="h-10 w-10 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold">Bem-vindo ao Painel Financeiro</h2>
+                  <p className="text-muted-foreground max-w-md">
+                    Use a barra lateral para navegar entre as diferentes análises: Visão Geral, DFC, DRE e mais.
+                  </p>
+                </div>
+              )}
+              {activeTab === "visao-geral" && (
                 <div className="space-y-6">
                   <KPICards data={filteredData} allData={data || []} dateField={dateField} />
                   <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-6">
@@ -114,27 +125,36 @@ export function FinancialDashboard() {
                     <CategoryCharts data={filteredData} />
                   </div>
                 </div>
-              ) : activeTab === "dfc" ? (
+              )}
+              {activeTab === "dfc" && (
                 <DFCMatrix data={filteredData} dateField="data_pagamento" regime="caixa" />
-              ) : activeTab === "dre" ? (
+              )}
+              {activeTab === "dre" && (
                 <DFCMatrix data={filteredData} dateField="data_competencia" regime="competencia" />
-              ) : activeTab === "extrato" ? (
+              )}
+              {activeTab === "extrato" && (
                 <ExtratoTable data={filteredData} dateField={dateField} />
-              ) : activeTab === "admin" ? (
+              )}
+              {activeTab === "indicadores" && (
+                 <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+                  <div className="bg-primary/10 p-4 rounded-full">
+                    <BarChart3 className="h-10 w-10 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-bold">Módulo de Indicadores</h2>
+                  <p className="text-muted-foreground max-w-md">
+                    Esta seção está em desenvolvimento e em breve trará análises detalhadas de indicadores de performance.
+                  </p>
+                </div>
+              )}
+              {activeTab === "admin" && (
                 <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
                   <div className="bg-primary/10 p-4 rounded-full">
-                    <AlertCircle className="h-10 w-10 text-primary" />
+                    <ShieldCheck className="h-10 w-10 text-primary" />
                   </div>
                   <h2 className="text-xl font-bold">Painel Administrativo</h2>
                   <p className="text-muted-foreground max-w-md">
                     Este é um espaço reservado para configurações do sistema e gestão de usuários.
-                    Em breve você poderá gerenciar permissões aqui.
                   </p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <KPICards data={filteredData} allData={data || []} dateField={dateField} />
-                  <MonthlyChart data={filteredData} dateField={dateField} />
                 </div>
               )}
             </>
