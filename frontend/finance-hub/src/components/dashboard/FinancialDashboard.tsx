@@ -43,8 +43,8 @@ function filterByDate(data: MovimentacaoFinanceira[], start: string, end: string
   if (!start && !end) return data;
   return data.filter((d) => {
     const raw = d[dateField] as string | null;
-    if (!raw) return false;
-    const date = raw.slice(0, 10);
+    const date = (raw || "").slice(0, 10);
+    if (!date) return false;
     if (start && date < start) return false;
     if (end && date > end) return false;
     return true;
@@ -65,8 +65,8 @@ export function FinancialDashboard() {
     navigate("/login");
   };
 
-  // Determine dateField based on active tab
-  const dateField: DateField = activeTab === "dre" ? "data_competencia" : "data_pagamento";
+  const dateField: DateField =
+    activeTab === "dre" || activeTab === "a-receber" || activeTab === "a-pagar" ? "data_emissao" : "data_pagamento";
 
   // Auto-set date range based on active dateField
   useEffect(() => {
@@ -147,13 +147,7 @@ export function FinancialDashboard() {
                 <DFCMatrix data={filteredData} dateField="data_pagamento" regime="caixa" />
               )}
               {activeTab === "dre" && (
-                <DFCMatrix data={filteredData} dateField="data_competencia" regime="competencia" />
-              )}
-              {activeTab === "a-receber" && (
-                <ContasReceber data={filteredData} dateField={dateField} />
-              )}
-              {activeTab === "a-pagar" && (
-                <ContasPagar data={filteredData} dateField={dateField} />
+                <DFCMatrix data={filteredData} dateField="data_emissao" regime="competencia" />
               )}
               {activeTab === "a-receber" && (
                 <ContasReceber data={filteredData} dateField={dateField} />

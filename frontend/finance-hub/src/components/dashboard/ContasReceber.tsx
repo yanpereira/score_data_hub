@@ -18,6 +18,11 @@ function isEntrada(tipo: unknown) {
   return t.includes("entrada");
 }
 
+function isSemBaixa(dataPagamento: unknown) {
+  const v = String(dataPagamento ?? "").trim();
+  return v.length === 0;
+}
+
 export function ContasReceber({ data, dateField }: { data: MovimentacaoFinanceira[]; dateField: DateField }) {
   const [query, setQuery] = useState("");
 
@@ -25,9 +30,10 @@ export function ContasReceber({ data, dateField }: { data: MovimentacaoFinanceir
     const q = normalizeText(query);
     return data
       .filter((d) => isEntrada(d.tipo_movimento))
+      .filter((d) => isSemBaixa(d.data_pagamento))
       .filter((d) => (q ? normalizeText(String(d.categoria_lancamento ?? "")).includes(q) : true))
       .map((d) => {
-        const raw = (d[dateField] as string | null) ?? d.data_pagamento;
+        const raw = d[dateField] as string | null;
         return {
           date: raw ? raw.slice(0, 10) : "",
           categoria: String(d.categoria_lancamento ?? ""),

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/supabase/external-client";
 
 export type RegimeType = "caixa" | "competencia";
-export type DateField = "data_pagamento" | "data_competencia";
+export type DateField = "data_pagamento" | "data_competencia" | "data_emissao";
 
 export function getDateField(regime: RegimeType): DateField {
   return regime === "caixa" ? "data_pagamento" : "data_competencia";
@@ -10,7 +10,8 @@ export function getDateField(regime: RegimeType): DateField {
 
 export interface MovimentacaoFinanceira {
   tipo_movimento: string;
-  data_pagamento: string;
+  data_pagamento: string | null;
+  data_emissao: string | null;
   data_competencia: string | null;
   valor_liquido: number;
   categoria_lancamento: string;
