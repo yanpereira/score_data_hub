@@ -29,14 +29,14 @@ export default function Login() {
             username: "yan",
             role: "admin",
             modules: ["financeiro", "pdi", "rh"],
-            dashboards: ["home", "visao-geral", "dfc", "dre", "extrato", "indicadores"],
+            dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores"],
           },
           {
             id: "2",
             username: "henrique",
-            role: "usuario",
+            role: "admin",
             modules: ["financeiro"],
-            dashboards: ["home", "visao-geral", "extrato"],
+            dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores"],
           },
         ];
         localStorage.setItem("app_users", JSON.stringify(initialUsers));

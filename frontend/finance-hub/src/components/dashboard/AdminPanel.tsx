@@ -26,6 +26,8 @@ const AVAILABLE_MODULES = [
 
 const AVAILABLE_DASHBOARDS = [
   { id: "visao-geral", label: "Visão Geral" },
+  { id: "a-receber", label: "A Receber" },
+  { id: "a-pagar", label: "A Pagar" },
   { id: "dfc", label: "DFC" },
   { id: "dre", label: "DRE" },
   { id: "extrato", label: "Extrato" },
@@ -47,8 +49,8 @@ export function AdminPanel() {
     } else {
       // Default users
       const initialUsers: UserProfile[] = [
-        { id: "1", username: "yan", role: "admin", modules: ["financeiro", "pdi", "rh"], dashboards: ["visao-geral", "dfc", "dre", "extrato", "indicadores"] },
-        { id: "2", username: "henrique", role: "usuario", modules: ["financeiro"], dashboards: ["visao-geral", "extrato"] }
+        { id: "1", username: "yan", role: "admin", modules: ["financeiro", "pdi", "rh"], dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores"] },
+        { id: "2", username: "henrique", role: "usuario", modules: ["financeiro"], dashboards: ["home", "visao-geral", "a-receber", "extrato"] }
       ];
       setUsers(initialUsers);
       localStorage.setItem("app_users", JSON.stringify(initialUsers));
@@ -72,7 +74,7 @@ export function AdminPanel() {
     localStorage.setItem("app_users", JSON.stringify(updatedUsers));
     
     // Also store password for login simulation
-    localStorage.setItem(`pwd_${newUsername}`, newPassword);
+    localStorage.setItem(`pwd_${newUsername.trim().toLowerCase()}`, newPassword);
 
     toast.success(`Usuário ${newUsername} criado com sucesso!`);
     setNewUsername("");

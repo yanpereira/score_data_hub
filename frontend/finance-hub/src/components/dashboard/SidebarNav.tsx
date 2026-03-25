@@ -1,4 +1,4 @@
-import { Home, TrendingUp, FileText, LayoutGrid, BarChart3, Receipt, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Home, TrendingUp, FileText, LayoutGrid, BarChart3, Receipt, ArrowLeft, ShieldCheck, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +12,8 @@ interface SidebarNavProps {
 const NAV_ITEMS = [
   { id: "home", icon: Home, label: "Home" },
   { id: "visao-geral", icon: TrendingUp, label: "Visão Geral" },
+  { id: "a-receber", icon: ArrowUpCircle, label: "A Receber" },
+  { id: "a-pagar", icon: ArrowDownCircle, label: "A Pagar" },
   { id: "extrato", icon: FileText, label: "Extrato Bancário" },
   { id: "dfc", icon: LayoutGrid, label: "DFC" },
   { id: "dre", icon: Receipt, label: "DRE" },

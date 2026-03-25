@@ -7,6 +7,8 @@ import { CategoryCharts } from "./CategoryCharts";
 import { MonthlyChart } from "./MonthlyChart";
 import { DFCMatrix } from "./DFCMatrix";
 import { ExtratoTable } from "./ExtratoTable";
+import { ContasReceber } from "./ContasReceber";
+import { ContasPagar } from "./ContasPagar";
 import { AdminPanel } from "./AdminPanel";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AlertCircle, Home, BarChart3, ShieldCheck, LogOut } from "lucide-react";
@@ -146,6 +148,18 @@ export function FinancialDashboard() {
               )}
               {activeTab === "dre" && (
                 <DFCMatrix data={filteredData} dateField="data_competencia" regime="competencia" />
+              )}
+              {activeTab === "a-receber" && (
+                <ContasReceber data={filteredData} dateField={dateField} />
+              )}
+              {activeTab === "a-pagar" && (
+                <ContasPagar data={filteredData} dateField={dateField} />
+              )}
+              {activeTab === "a-receber" && (
+                <ContasReceber data={filteredData} dateField={dateField} />
+              )}
+              {activeTab === "a-pagar" && (
+                <ContasPagar data={filteredData} dateField={dateField} />
               )}
               {activeTab === "extrato" && (
                 <ExtratoTable data={filteredData} dateField={dateField} />
