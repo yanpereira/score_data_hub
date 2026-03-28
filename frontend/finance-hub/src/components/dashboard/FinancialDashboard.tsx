@@ -5,6 +5,7 @@ import { SidebarNav } from "./SidebarNav";
 import { KPICards } from "./KPICards";
 import { CategoryCharts } from "./CategoryCharts";
 import { MonthlyChart } from "./MonthlyChart";
+import { RevenueCostChart } from "./RevenueCostChart";
 import { DFCMatrix } from "./DFCMatrix";
 import { ExtratoTable } from "./ExtratoTable";
 import { ContasReceber } from "./ContasReceber";
@@ -137,6 +138,7 @@ export function FinancialDashboard() {
               {activeTab === "visao-geral" && (
                 <div className="space-y-6">
                   <KPICards data={filteredData} allData={data || []} dateField={dateField} />
+                  <RevenueCostChart data={filteredData} dateField={dateField} />
                   <div className="grid grid-cols-1 xl:grid-cols-[3fr_2fr] gap-6">
                     <MonthlyChart data={filteredData} dateField={dateField} />
                     <CategoryCharts data={filteredData} />

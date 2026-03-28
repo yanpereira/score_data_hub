@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { buildDFCMatrixExpanded, getSortedMonths, formatBRL, type DFCRow } from "@/lib/finance-utils";
+import { buildDFCMatrixExpanded, DFC_CATEGORIES, getSortedMonths, formatBRL, type DFCRow } from "@/lib/finance-utils";
 import type { MovimentacaoFinanceira, DateField, RegimeType } from "@/hooks/useFinanceData";
 import { cn } from "@/lib/utils";
 import React, { useMemo, useState, useCallback } from "react";
@@ -21,6 +21,8 @@ const ALL_MONTHS = [
 export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
   const availableMonths = getSortedMonths(data, dateField);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [showAH, setShowAH] = useState(true);
+  const [showAV, setShowAV] = useState(true);
 
   const years = useMemo(() => {
     const ys = new Set<string>();
@@ -38,6 +40,16 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
 
   const activeMonths = availableMonths.filter((m) => m.endsWith(`/${currentYear}`));
   const allRows = useMemo(() => buildDFCMatrixExpanded(data, activeMonths, dateField), [data, activeMonths, dateField]);
+
+  const baseByMonth = useMemo(() => {
+    const fat = allRows.find((r) => r.key === DFC_CATEGORIES.faturamento);
+    const values = fat?.values ?? {};
+    const map: Record<string, number> = {};
+    activeMonths.forEach((m) => {
+      map[m] = values[m] ?? 0;
+    });
+    return map;
+  }, [allRows, activeMonths]);
 
   const toggle = useCallback((key: string) => {
     setExpanded((prev) => {
@@ -90,6 +102,26 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
             </div>
           ))}
         </div>
+        <div className="flex gap-1 ml-3 flex-shrink-0">
+          <button
+            onClick={() => setShowAH((v) => !v)}
+            className={cn(
+              "text-[10px] px-2 py-1 rounded border transition-colors",
+              showAH ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-accent"
+            )}
+          >
+            AH
+          </button>
+          <button
+            onClick={() => setShowAV((v) => !v)}
+            className={cn(
+              "text-[10px] px-2 py-1 rounded border transition-colors",
+              showAV ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground border-border hover:bg-accent"
+            )}
+          >
+            AV
+          </button>
+        </div>
         {hasExpandableRows && (
           <div className="flex gap-1 ml-3 flex-shrink-0">
             <button onClick={expandAll} className="text-[10px] px-2 py-1 rounded bg-muted text-muted-foreground hover:bg-accent transition-colors">
@@ -115,7 +147,11 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
                     Competência
                   </TableHead>
                   {activeMonths.map((m) => (
-                    <TableHead key={m} colSpan={2} className="text-center text-xs font-bold text-foreground border-x border-border">
+                    <TableHead
+                      key={m}
+                      colSpan={1 + (showAH ? 1 : 0) + (showAV ? 1 : 0)}
+                      className="text-center text-xs font-bold text-foreground border-x border-border"
+                    >
                       {m}
                     </TableHead>
                   ))}
@@ -124,7 +160,16 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
                   {activeMonths.map((m) => (
                     <React.Fragment key={`sub-${m}`}>
                       <TableHead className="text-center text-[11px] font-semibold text-muted-foreground border-x border-border min-w-[100px]">Valor</TableHead>
-                      <TableHead className="text-center text-[11px] font-semibold text-muted-foreground border-x border-border min-w-[80px]">AH</TableHead>
+                      {showAH && (
+                        <TableHead className="text-center text-[11px] font-semibold text-muted-foreground border-x border-border min-w-[80px]">
+                          AH
+                        </TableHead>
+                      )}
+                      {showAV && (
+                        <TableHead className="text-center text-[11px] font-semibold text-muted-foreground border-x border-border min-w-[80px]">
+                          AV
+                        </TableHead>
+                      )}
                     </React.Fragment>
                   ))}
                 </TableRow>
@@ -168,6 +213,8 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
                         const prevMonth = mIdx > 0 ? activeMonths[mIdx - 1] : null;
                         const prevVal = prevMonth ? (row.values[prevMonth] ?? 0) : null;
                         const ah = prevVal !== null ? getAH(val, prevVal) : null;
+                        const base = baseByMonth[m] ?? 0;
+                        const av = base !== 0 ? (val / base) * 100 : null;
 
                         return (
                           <React.Fragment key={`${row.key}-${m}`}>
@@ -181,14 +228,26 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
                             >
                               {val !== 0 ? formatBRL(val) : ""}
                             </TableCell>
-                            <TableCell
-                              className={cn(
-                                "text-center text-[11px] tabular-nums border-x border-border",
-                                ah?.positive ? "text-success" : "text-destructive"
-                              )}
-                            >
-                              {ah ? <span>{ah.positive ? "▲" : "▼"} {ah.text}</span> : null}
-                            </TableCell>
+                            {showAH && (
+                              <TableCell
+                                className={cn(
+                                  "text-center text-[11px] tabular-nums border-x border-border",
+                                  ah?.positive ? "text-success" : "text-destructive"
+                                )}
+                              >
+                                {ah ? <span>{ah.positive ? "▲" : "▼"} {ah.text}</span> : null}
+                              </TableCell>
+                            )}
+                            {showAV && (
+                              <TableCell
+                                className={cn(
+                                  "text-center text-[11px] tabular-nums border-x border-border",
+                                  av !== null ? (av >= 0 ? "text-success" : "text-destructive") : "text-muted-foreground"
+                                )}
+                              >
+                                {av !== null ? `${av.toFixed(1)}%` : null}
+                              </TableCell>
+                            )}
                           </React.Fragment>
                         );
                       })}
