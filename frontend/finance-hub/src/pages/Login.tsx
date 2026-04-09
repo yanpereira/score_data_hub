@@ -29,7 +29,7 @@ export default function Login() {
             username: "yan",
             role: "admin",
             modules: ["financeiro", "pdi", "rh"],
-            dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores"],
+            dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores", "orcamento"],
           },
           {
             id: "2",

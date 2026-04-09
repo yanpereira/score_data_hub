@@ -1,8 +1,5 @@
 import { Card } from "@/components/ui/card";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { groupByCategory, groupByDfcGrupo, groupByFormaPagamento, formatBRL } from "@/lib/finance-utils";
 import type { MovimentacaoFinanceira } from "@/hooks/useFinanceData";
 import { useState, useMemo } from "react";
@@ -19,24 +16,24 @@ const TABS = [
 ];
 
 const DONUT_COLORS = [
-  "hsl(var(--chart-donut-1))",
-  "hsl(var(--chart-donut-2))",
-  "hsl(var(--chart-donut-3))",
-  "hsl(var(--chart-donut-4))",
-  "hsl(var(--chart-donut-5))",
-  "hsl(var(--chart-red))",
-  "hsl(var(--chart-blue))",
+  "#0d9488", // teal-600
+  "#0891b2", // cyan-600
+  "#2563eb", // blue-600
+  "#7c3aed", // violet-600
+  "#db2777", // pink-600
+  "#ea580c", // orange-600
+  "#65a30d", // lime-600
+  "#ca8a04", // yellow-600
 ];
 
-/* ─── Tooltips ─── */
-
+/* ─── Tooltip simples ─── */
 function SimpleTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const item = payload[0].payload;
   return (
     <div className="bg-card p-2.5 rounded-lg shadow-xl border border-border text-xs space-y-0.5">
-      <p className="font-bold text-foreground text-[11px]">{item.name}</p>
-      <p className="tabular-nums text-primary font-semibold">{formatBRL(item.value ?? item.valor_real ?? 0)}</p>
+      <p className="font-bold text-foreground">{item.name}</p>
+      <p className="tabular-nums text-primary font-semibold">{formatBRL(item.value ?? 0)}</p>
     </div>
   );
 }
@@ -44,7 +41,7 @@ function SimpleTooltip({ active, payload }: any) {
 function DonutTooltip({ active, payload, total }: any) {
   if (!active || !payload?.length) return null;
   const item = payload[0].payload;
-  const pct = total ? ((item.value / total) * 100).toFixed(1) : "0.0";
+  const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
   return (
     <div className="bg-card p-2.5 rounded-lg shadow-xl border border-border text-xs space-y-0.5">
       <p className="font-bold text-foreground">{item.name}</p>
@@ -54,31 +51,67 @@ function DonutTooltip({ active, payload, total }: any) {
   );
 }
 
-/* ─── Performance Bar ─── */
-
+/* ─── Barra de performance com valor sempre visível ─── */
 function PerformanceBar({ name, value, maxValue, color = "hsl(var(--primary))" }: {
   name: string; value: number; maxValue: number; color?: string;
 }) {
-  const pct = maxValue > 0 ? (value / maxValue) * 100 : 0;
+  const pct = maxValue > 0 ? Math.max((value / maxValue) * 100, 4) : 4;
+  const showInside = pct > 35;
+
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-[10px] text-muted-foreground w-[100px] text-right truncate flex-shrink-0 leading-tight">{name}</span>
-      <div className="flex-1 h-6 bg-muted/30 rounded overflow-hidden relative">
-        <div
-          className="h-full rounded flex items-center px-2 transition-all duration-500"
-          style={{ width: `${Math.max(pct, 12)}%`, background: color }}
-        >
-          <span className="text-[9px] font-bold text-primary-foreground tabular-nums whitespace-nowrap">
+    <div className="flex items-center gap-2 py-0.5">
+      <span className="text-[10px] text-muted-foreground w-[110px] text-right truncate flex-shrink-0 leading-tight" title={name}>
+        {name}
+      </span>
+      <div className="flex-1 flex items-center gap-1.5 min-w-0">
+        <div className="flex-1 h-6 bg-muted/30 rounded overflow-hidden relative">
+          <div
+            className="h-full rounded transition-all duration-500 flex items-center"
+            style={{ width: `${pct}%`, background: color }}
+          >
+            {showInside && (
+              <span className="text-[9px] font-bold text-white tabular-nums whitespace-nowrap px-1.5 overflow-hidden">
+                {formatBRL(value)}
+              </span>
+            )}
+          </div>
+        </div>
+        {!showInside && (
+          <span className="text-[10px] font-semibold tabular-nums text-foreground whitespace-nowrap flex-shrink-0">
             {formatBRL(value)}
           </span>
-        </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ─── Tab: Categoria ─── */
+/* ─── Legenda customizada do donut ─── */
+function DonutLegend({ items, total }: { items: { name: string; value: number }[]; total: number }) {
+  return (
+    <div className="space-y-1 mt-2">
+      {items.map((item, i) => {
+        const pct = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
+        return (
+          <div key={item.name} className="flex items-center gap-2">
+            <span
+              className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+              style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }}
+            />
+            <span className="text-[10px] text-muted-foreground truncate flex-1 min-w-0" title={item.name}>
+              {item.name}
+            </span>
+            <span className="text-[10px] font-semibold tabular-nums text-foreground flex-shrink-0">
+              {pct}%
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
+/* ─── Tab: Categoria ─── */
 function TabCategoria({ data }: { data: MovimentacaoFinanceira[] }) {
   const entradas = groupByCategory(data, "Entrada").slice(0, 6);
   const saidas = groupByCategory(data, "Saída").slice(0, 6);
@@ -89,22 +122,25 @@ function TabCategoria({ data }: { data: MovimentacaoFinanceira[] }) {
     <div className="space-y-4">
       <div>
         <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">PERFORMANCE ENTRADAS</h4>
-        {entradas.map((item) => (
-          <PerformanceBar key={item.name} name={item.name} value={item.value} maxValue={maxEntrada} />
-        ))}
+        <div className="space-y-0.5">
+          {entradas.map((item) => (
+            <PerformanceBar key={item.name} name={item.name} value={item.value} maxValue={maxEntrada} />
+          ))}
+        </div>
       </div>
       <div>
         <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">PERFORMANCE SAÍDAS</h4>
-        {saidas.map((item) => (
-          <PerformanceBar key={item.name} name={item.name} value={item.value} maxValue={maxSaida} color="hsl(var(--chart-red))" />
-        ))}
+        <div className="space-y-0.5">
+          {saidas.map((item) => (
+            <PerformanceBar key={item.name} name={item.name} value={item.value} maxValue={maxSaida} color="#ef4444" />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /* ─── Tab: Natureza ─── */
-
 function TabNatureza({ data }: { data: MovimentacaoFinanceira[] }) {
   const despesas = useMemo(() => groupByDfcGrupo(data, "Saída"), [data]);
   const receitas = useMemo(() => groupByDfcGrupo(data, "Entrada"), [data]);
@@ -112,12 +148,13 @@ function TabNatureza({ data }: { data: MovimentacaoFinanceira[] }) {
   const maxReceita = receitas[0]?.value ?? 1;
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">COMPOSIÇÃO DE DESPESAS</h4>
-          <div className="flex justify-center">
-            <ResponsiveContainer width="100%" height={200}>
+    <div className="space-y-4">
+      <div>
+        <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">COMPOSIÇÃO DE DESPESAS</h4>
+        <div className="flex gap-4 items-start">
+          {/* Donut — tamanho fixo, sem Legend interna */}
+          <div className="flex-shrink-0 w-[140px] h-[140px]">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={despesas}
@@ -125,33 +162,38 @@ function TabNatureza({ data }: { data: MovimentacaoFinanceira[] }) {
                   nameKey="name"
                   cx="50%"
                   cy="50%"
-                  innerRadius={40}
-                  outerRadius={75}
-                  paddingAngle={3}
+                  innerRadius={38}
+                  outerRadius={62}
+                  paddingAngle={2}
                   strokeWidth={0}
                 >
-                  {despesas.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+                  {despesas.map((_, i) => (
+                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
+                  ))}
                 </Pie>
                 <Tooltip content={<DonutTooltip total={totalDespesas} />} />
-                <Legend
-                  layout="vertical"
-                  align="right"
-                  verticalAlign="middle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: 9, lineHeight: "16px" }}
-                  formatter={(value: string) => value.length > 16 ? value.slice(0, 14) + "…" : value}
-                />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div>
-          <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">PERFORMANCE RECEITAS</h4>
-          <div className="space-y-0.5 mt-2">
-            {receitas.slice(0, 5).map((item, i) => (
-              <PerformanceBar key={item.name} name={item.name} value={item.value} maxValue={maxReceita} color={DONUT_COLORS[i % DONUT_COLORS.length]} />
-            ))}
+          {/* Legenda customizada ao lado */}
+          <div className="flex-1 min-w-0">
+            <DonutLegend items={despesas} total={totalDespesas} />
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">PERFORMANCE RECEITAS</h4>
+        <div className="space-y-0.5">
+          {receitas.slice(0, 5).map((item, i) => (
+            <PerformanceBar
+              key={item.name}
+              name={item.name}
+              value={item.value}
+              maxValue={maxReceita}
+              color={DONUT_COLORS[i % DONUT_COLORS.length]}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -159,49 +201,55 @@ function TabNatureza({ data }: { data: MovimentacaoFinanceira[] }) {
 }
 
 /* ─── Tab: Contas ─── */
-
 function TabContas({ data }: { data: MovimentacaoFinanceira[] }) {
   const formaData = useMemo(() => groupByFormaPagamento(data).slice(0, 6), [data]);
   const maxVal = formaData.reduce((m, d) => Math.max(m, d.entradas, d.saidas), 1);
 
   return (
     <div>
-      <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-2">FORMA DE PAGAMENTO</h4>
-      <div className="space-y-1.5">
+      <h4 className="text-[9px] font-bold tracking-[0.1em] text-foreground uppercase mb-3">FORMA DE PAGAMENTO</h4>
+      <div className="space-y-2">
         {formaData.map((item) => (
-          <div key={item.name} className="flex items-center gap-2 py-0.5">
-            <span className="text-[10px] text-muted-foreground w-[100px] text-right truncate flex-shrink-0">{item.name}</span>
-            <div className="flex-1 flex gap-0.5">
-              <div className="flex-1 h-5 bg-muted/30 rounded overflow-hidden">
-                <div
-                  className="h-full rounded flex items-center px-1.5"
-                  style={{ width: `${Math.max((item.entradas / maxVal) * 100, 12)}%`, background: "hsl(var(--primary))" }}
-                >
-                  <span className="text-[8px] font-bold text-primary-foreground tabular-nums whitespace-nowrap">{formatBRL(item.entradas)}</span>
+          <div key={item.name} className="space-y-0.5">
+            <span className="text-[10px] text-muted-foreground font-medium">{item.name}</span>
+            <div className="flex gap-1">
+              {/* Entrada */}
+              <div className="flex-1 flex items-center gap-1.5">
+                <div className="flex-1 h-5 bg-muted/30 rounded overflow-hidden">
+                  <div
+                    className="h-full rounded"
+                    style={{ width: `${Math.max((item.entradas / maxVal) * 100, 4)}%`, background: "hsl(var(--primary))" }}
+                  />
                 </div>
+                <span className="text-[9px] tabular-nums text-foreground w-[70px] flex-shrink-0">{formatBRL(item.entradas)}</span>
               </div>
-              <div className="flex-1 h-5 bg-muted/30 rounded overflow-hidden">
-                <div
-                  className="h-full rounded flex items-center px-1.5"
-                  style={{ width: `${Math.max((item.saidas / maxVal) * 100, 12)}%`, background: "hsl(var(--chart-red))" }}
-                >
-                  <span className="text-[8px] font-bold text-primary-foreground tabular-nums whitespace-nowrap">{formatBRL(item.saidas)}</span>
+              {/* Saída */}
+              <div className="flex-1 flex items-center gap-1.5">
+                <div className="flex-1 h-5 bg-muted/30 rounded overflow-hidden">
+                  <div
+                    className="h-full rounded"
+                    style={{ width: `${Math.max((item.saidas / maxVal) * 100, 4)}%`, background: "#ef4444" }}
+                  />
                 </div>
+                <span className="text-[9px] tabular-nums text-foreground w-[70px] flex-shrink-0">{formatBRL(item.saidas)}</span>
               </div>
             </div>
           </div>
         ))}
-        <div className="flex items-center gap-3 pt-2 pl-[108px] text-[9px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: "hsl(var(--primary))" }} /> Entradas</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm inline-block" style={{ background: "hsl(var(--chart-red))" }} /> Saídas</span>
-        </div>
+      </div>
+      <div className="flex items-center gap-4 pt-3 text-[9px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-sm inline-block" style={{ background: "hsl(var(--primary))" }} /> Entradas
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-sm inline-block bg-red-500" /> Saídas
+        </span>
       </div>
     </div>
   );
 }
 
-/* ─── Main Component ─── */
-
+/* ─── Main ─── */
 export function CategoryCharts({ data }: CategoryChartsProps) {
   const [activeTab, setActiveTab] = useState("categoria");
 

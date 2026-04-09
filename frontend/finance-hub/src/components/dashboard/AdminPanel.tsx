@@ -49,7 +49,7 @@ export function AdminPanel() {
     } else {
       // Default users
       const initialUsers: UserProfile[] = [
-        { id: "1", username: "yan", role: "admin", modules: ["financeiro", "pdi", "rh"], dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores"] },
+        { id: "1", username: "yan", role: "admin", modules: ["financeiro", "pdi", "rh"], dashboards: ["home", "visao-geral", "a-receber", "a-pagar", "dfc", "dre", "extrato", "indicadores", "orcamento"] },
         { id: "2", username: "henrique", role: "usuario", modules: ["financeiro"], dashboards: ["home", "visao-geral", "a-receber", "extrato"] }
       ];
       setUsers(initialUsers);

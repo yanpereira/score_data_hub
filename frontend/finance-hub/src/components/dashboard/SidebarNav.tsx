@@ -1,4 +1,4 @@
-import { Home, TrendingUp, FileText, LayoutGrid, BarChart3, Receipt, ArrowLeft, ShieldCheck, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Home, TrendingUp, FileText, LayoutGrid, BarChart3, Receipt, ArrowLeft, ShieldCheck, ArrowDownCircle, ArrowUpCircle, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { id: "dfc", icon: LayoutGrid, label: "DFC" },
   { id: "dre", icon: Receipt, label: "DRE" },
   { id: "indicadores", icon: BarChart3, label: "Indicadores" },
+  { id: "orcamento", icon: CalendarCheck, label: "Orçamento" },
 ];
 
 export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
@@ -49,7 +50,7 @@ export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
         <TooltipContent side="right" className="text-xs">Voltar ao Hub</TooltipContent>
       </Tooltip>
 
-      {NAV_ITEMS.filter(item => item.id === "home" || allowedDashboards.includes(item.id)).map(({ id, icon: Icon, label }) => (
+      {NAV_ITEMS.filter(item => item.id === "home" || isAdmin || allowedDashboards.includes(item.id)).map(({ id, icon: Icon, label }) => (
         <Tooltip key={id} delayDuration={0}>
           <TooltipTrigger asChild>
             <button

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatBRL, getMonthKeyFromRow, isSaida } from "@/lib/finance-utils";
 import { ChevronDown } from "lucide-react";
-import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -52,15 +52,21 @@ function hashToColor(key: string) {
 type IndicatorOption = { key: string; label: string };
 
 function buildChart(data: MovimentacaoFinanceira[], dateField: DateField, topN: number) {
-  const monthMap = new Map<string, { receita: number; indicadores: Record<string, number> }>();
+  const monthMap = new Map<string, {
+    receita: number;
+    custosVariaveis: number;
+    custosFixos: number;
+    indicadores: Record<string, number>;
+  }>();
   const totals = new Map<string, number>();
 
   data.forEach((d) => {
     const month = getMonthKeyFromRow(d, dateField);
     if (!month) return;
 
-    const bucket = monthMap.get(month) ?? { receita: 0, indicadores: {} };
+    const bucket = monthMap.get(month) ?? { receita: 0, custosVariaveis: 0, custosFixos: 0, indicadores: {} };
     const valor = Number(d.valor_liquido ?? 0);
+    const mascara = String(d.dfc_mascara ?? "");
 
     if (d.tipo_movimento === "Entrada") {
       bucket.receita += valor;
@@ -76,6 +82,13 @@ function buildChart(data: MovimentacaoFinanceira[], dateField: DateField, topN: 
       totals.set(k, (totals.get(k) ?? 0) + absVal);
       bucket.indicadores["saidas_total"] = (bucket.indicadores["saidas_total"] ?? 0) + absVal;
       totals.set("saidas_total", (totals.get("saidas_total") ?? 0) + absVal);
+
+      // Separar custos variáveis (4) de custos fixos (5 e 6) para o PE
+      if (mascara.includes("4 - Custos Variáveis")) {
+        bucket.custosVariaveis += absVal;
+      } else if (mascara.includes("5 - Despesas Gerais") || mascara.includes("6 - Investimentos")) {
+        bucket.custosFixos += absVal;
+      }
     }
 
     monthMap.set(month, bucket);
@@ -98,10 +111,17 @@ function buildChart(data: MovimentacaoFinanceira[], dateField: DateField, topN: 
   const rows = Array.from(monthMap.entries())
     .sort(([a], [b]) => sortMonthKey(a, b))
     .map(([month, bucket]) => {
-      const row: Record<string, number | string> = { month, receita: bucket.receita };
-      Object.entries(bucket.indicadores).forEach(([k, v]) => {
-        row[k] = v;
-      });
+      const mcPct = bucket.receita > 0
+        ? (bucket.receita - bucket.custosVariaveis) / bucket.receita
+        : null;
+      const pe = mcPct && mcPct > 0 ? bucket.custosFixos / mcPct : null;
+
+      const row: Record<string, number | string | null> = {
+        month,
+        receita: bucket.receita,
+        pe,
+      };
+      Object.entries(bucket.indicadores).forEach(([k, v]) => { row[k] = v; });
       return row;
     });
 
@@ -111,6 +131,7 @@ function buildChart(data: MovimentacaoFinanceira[], dateField: DateField, topN: 
 export function RevenueCostChart({ data, dateField }: { data: MovimentacaoFinanceira[]; dateField: DateField }) {
   const { rows, options } = useMemo(() => buildChart(data, dateField, 20), [data, dateField]);
   const [selected, setSelected] = useState<string[]>(["saidas_total"]);
+  const [showPE, setShowPE] = useState(true);
 
   const selectedSet = useMemo(() => new Set(selected), [selected]);
 
@@ -143,11 +164,14 @@ export function RevenueCostChart({ data, dateField }: { data: MovimentacaoFinanc
       }));
 
     const receita = items.find((i) => i.key === "receita")?.value ?? 0;
+    const peItem = items.find((i) => i.key === "pe");
+    const peValue = peItem?.value ?? null;
     const selectedItems = items
-      .filter((i) => i.key !== "receita" && selectedSet.has(i.key))
+      .filter((i) => i.key !== "receita" && i.key !== "pe" && selectedSet.has(i.key))
       .sort((a, b) => b.value - a.value);
 
     const labelMap = new Map(options.map((o) => [o.key, o.label]));
+    const abovePE = peValue !== null ? receita >= peValue : null;
 
     return (
       <div className="bg-card p-3.5 rounded-xl shadow-xl border border-border text-xs space-y-2 min-w-[240px]">
@@ -159,6 +183,21 @@ export function RevenueCostChart({ data, dateField }: { data: MovimentacaoFinanc
           </div>
           <span className="font-semibold tabular-nums text-foreground">{formatBRL(receita)}</span>
         </div>
+
+        {showPE && peValue !== null && (
+          <div className="pt-2 border-t border-border space-y-1.5">
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-0.5 inline-block border-t-2 border-dashed" style={{ borderColor: "#f59e0b" }} />
+                <span className="text-muted-foreground">Ponto de Equilíbrio</span>
+              </div>
+              <span className="font-semibold tabular-nums text-foreground">{formatBRL(peValue)}</span>
+            </div>
+            <div className={`text-[10px] font-medium px-1.5 py-0.5 rounded w-fit ${abovePE ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}>
+              {abovePE ? "▲ Acima do equilíbrio" : "▼ Abaixo do equilíbrio"}
+            </div>
+          </div>
+        )}
 
         {selectedItems.length > 0 && (
           <div className="pt-2 border-t border-border space-y-1.5">
@@ -186,6 +225,13 @@ export function RevenueCostChart({ data, dateField }: { data: MovimentacaoFinanc
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPE((v) => !v)}
+            className={`text-[10px] px-2 py-1 rounded border transition-colors ${showPE ? "bg-amber-500 text-white border-amber-500" : "bg-card text-muted-foreground border-border hover:bg-muted"}`}
+            title="Mostrar/ocultar Ponto de Equilíbrio"
+          >
+            PE
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 text-xs">
@@ -263,6 +309,19 @@ export function RevenueCostChart({ data, dateField }: { data: MovimentacaoFinanc
               strokeWidth={2.5}
               dot={false}
             />
+
+            {showPE && (
+              <Line
+                type="monotone"
+                dataKey="pe"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                strokeDasharray="6 3"
+                dot={false}
+                connectNulls
+                name="Ponto de Equilíbrio"
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

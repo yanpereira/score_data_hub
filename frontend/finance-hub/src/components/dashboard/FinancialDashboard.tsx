@@ -11,6 +11,7 @@ import { ExtratoTable } from "./ExtratoTable";
 import { ContasReceber } from "./ContasReceber";
 import { ContasPagar } from "./ContasPagar";
 import { AdminPanel } from "./AdminPanel";
+import { OrcamentoPrevisto } from "./OrcamentoPrevisto";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AlertCircle, Home, BarChart3, ShieldCheck, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -67,7 +68,9 @@ export function FinancialDashboard() {
   };
 
   const dateField: DateField =
-    activeTab === "dre" || activeTab === "a-receber" || activeTab === "a-pagar" ? "data_emissao" : "data_pagamento";
+    activeTab === "dre" || activeTab === "a-receber" || activeTab === "a-pagar" || activeTab === "orcamento"
+      ? "data_emissao"
+      : "data_pagamento";
 
   // Auto-set date range based on active dateField
   useEffect(() => {
@@ -170,6 +173,9 @@ export function FinancialDashboard() {
                     Esta seção está em desenvolvimento e em breve trará análises detalhadas de indicadores de performance.
                   </p>
                 </div>
+              )}
+              {activeTab === "orcamento" && (
+                <OrcamentoPrevisto data={filteredData} />
               )}
               {activeTab === "admin" && (
                 <AdminPanel />
