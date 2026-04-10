@@ -1,6 +1,7 @@
 import { Home, TrendingUp, FileText, LayoutGrid, BarChart3, Receipt, ArrowLeft, ShieldCheck, ArrowDownCircle, ArrowUpCircle, CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useNavigate } from "react-router-dom";
 import logoScore from "@/assets/logo_score.png";
 
@@ -71,9 +72,10 @@ export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
         </Tooltip>
       ))}
 
-      {/* Admin Menu - Only for administrators (Yan) */}
-      {isAdmin && (
-        <div className="mt-auto border-t border-border pt-4 w-full flex flex-col items-center">
+      {/* Bottom area */}
+      <div className="mt-auto border-t border-border pt-4 w-full flex flex-col items-center gap-1">
+        <ThemeToggle />
+        {isAdmin && (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
               <button
@@ -90,8 +92,8 @@ export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
             </TooltipTrigger>
             <TooltipContent side="right" className="text-xs">Painel Admin</TooltipContent>
           </Tooltip>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

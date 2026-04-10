@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 import logoScore from "@/assets/logo_score.png";
@@ -23,10 +24,13 @@ export function HubHeader() {
           <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Plataforma de Inteligência</p>
         </div>
       </div>
-      <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-red-500 gap-2">
-        <LogOut className="h-4 w-4" />
-        Sair
-      </Button>
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+        <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-red-500 gap-2">
+          <LogOut className="h-4 w-4" />
+          Sair
+        </Button>
+      </div>
     </header>
   );
 }
