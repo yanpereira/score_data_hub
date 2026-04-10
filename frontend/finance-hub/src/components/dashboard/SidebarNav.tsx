@@ -25,8 +25,7 @@ const NAV_ITEMS = [
 export function SidebarNav({ activeTab, onTabChange }: SidebarNavProps) {
   const navigate = useNavigate();
   const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
-  const normalizedUsername = (currentUser?.username || "").toLowerCase();
-  const isAdmin = normalizedUsername === "yan";
+  const isAdmin = currentUser?.role === "admin";
   const allowedDashboards: string[] = Array.isArray(currentUser?.dashboards) && currentUser.dashboards.length
     ? currentUser.dashboards
     : NAV_ITEMS.map((i) => i.id);
