@@ -12,6 +12,7 @@ import { ContasReceber } from "./ContasReceber";
 import { ContasPagar } from "./ContasPagar";
 import { AdminPanel } from "./AdminPanel";
 import { OrcamentoPrevisto } from "./OrcamentoPrevisto";
+import { AIAgent } from "./AIAgent";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { AlertCircle, Home, BarChart3, ShieldCheck, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -164,15 +165,12 @@ export function FinancialDashboard() {
                 <ExtratoTable data={filteredData} dateField={dateField} />
               )}
               {activeTab === "indicadores" && (
-                 <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-                  <div className="bg-primary/10 p-4 rounded-full">
-                    <BarChart3 className="h-10 w-10 text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Módulo de Indicadores</h2>
-                  <p className="text-muted-foreground max-w-md">
-                    Esta seção está em desenvolvimento e em breve trará análises detalhadas de indicadores de performance.
-                  </p>
-                </div>
+                <AIAgent
+                  data={filteredData}
+                  dateField={dateField}
+                  startDate={startDate}
+                  endDate={endDate}
+                />
               )}
               {activeTab === "orcamento" && (
                 <OrcamentoPrevisto data={filteredData} />
