@@ -37,9 +37,17 @@ export function ContasPagar({ data, dateField }: { data: MovimentacaoFinanceira[
     const source = view === "pendentes" ? pendentes : pagos;
     const q = normalizeText(query);
     return source
-      .filter((d) => (q ? normalizeText(String(d.categoria_lancamento ?? "")).includes(q) : true))
+      .filter((d) => {
+        if (!q) return true;
+        return (
+          normalizeText(String(d.categoria_lancamento ?? "")).includes(q) ||
+          normalizeText(String(d.descricao ?? "")).includes(q)
+        );
+      })
       .map((d) => ({
         date: ((view === "pendentes" ? d[dateField] : d.data_pagamento) as string | null)?.slice(0, 10) ?? "",
+        descricao: String(d.descricao ?? ""),
+        fornecedor: String(d.nome_contato ?? ""),
         categoria: String(d.categoria_lancamento ?? ""),
         grupo: String(d.dfc_grupo ?? ""),
         valor: Math.abs(Number(d.valor_liquido ?? 0)),
@@ -94,7 +102,7 @@ export function ContasPagar({ data, dateField }: { data: MovimentacaoFinanceira[
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="h-8 text-xs w-[180px]"
-              placeholder="Filtrar por categoria..."
+              placeholder="Filtrar por categoria ou descrição..."
             />
             <div className="flex rounded-lg border border-border overflow-hidden">
               <button
@@ -128,6 +136,8 @@ export function ContasPagar({ data, dateField }: { data: MovimentacaoFinanceira[
             <TableHeader>
               <TableRow className="bg-primary">
                 <TableHead className="text-[11px] font-bold text-primary-foreground">DATA</TableHead>
+                <TableHead className="text-[11px] font-bold text-primary-foreground">FORNECEDOR</TableHead>
+                <TableHead className="text-[11px] font-bold text-primary-foreground">DESCRIÇÃO</TableHead>
                 <TableHead className="text-[11px] font-bold text-primary-foreground">CATEGORIA</TableHead>
                 <TableHead className="text-[11px] font-bold text-primary-foreground">GRUPO</TableHead>
                 <TableHead className="text-right text-[11px] font-bold text-primary-foreground">VALOR</TableHead>
@@ -137,19 +147,25 @@ export function ContasPagar({ data, dateField }: { data: MovimentacaoFinanceira[
               {activeRows.length ? (
                 activeRows.map((r, idx) => (
                   <TableRow key={`${r.date}-${idx}`} className={idx % 2 === 0 ? "bg-primary/5" : ""}>
-                    <TableCell className="text-xs tabular-nums text-foreground">
+                    <TableCell className="text-xs tabular-nums text-foreground whitespace-nowrap">
                       {r.date ? new Date(r.date + "T00:00:00").toLocaleDateString("pt-BR") : "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-foreground max-w-[180px] truncate" title={r.fornecedor}>
+                      {r.fornecedor || "-"}
+                    </TableCell>
+                    <TableCell className="text-xs text-foreground max-w-[220px] truncate" title={r.descricao}>
+                      {r.descricao || "-"}
                     </TableCell>
                     <TableCell className="text-xs text-foreground">{r.categoria || "-"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{r.grupo || "-"}</TableCell>
-                    <TableCell className="text-right text-xs tabular-nums font-semibold text-destructive">
+                    <TableCell className="text-right text-xs tabular-nums font-semibold text-destructive whitespace-nowrap">
                       {formatBRL(r.valor)}
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-10">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
                     Nenhum lançamento encontrado.
                   </TableCell>
                 </TableRow>

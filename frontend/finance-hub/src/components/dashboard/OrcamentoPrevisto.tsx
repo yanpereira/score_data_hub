@@ -105,11 +105,16 @@ function getDiffColor(diff: number, isRevenue: boolean): string {
   return positive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400";
 }
 
-function getDiffLabel(diff: number, isRevenue: boolean): string {
-  if (diff === 0) return "—";
+function getDiffInfo(
+  diff: number,
+  previsto: number,
+  isRevenue: boolean
+): { label: string; pct: string | null; positive: boolean } | null {
+  if (diff === 0 || previsto === 0) return null;
   const positive = isRevenue ? diff > 0 : diff < 0;
   const arrow = positive ? "▲" : "▼";
-  return `${arrow} ${formatBRL(Math.abs(diff))}`;
+  const pct = ((Math.abs(diff) / Math.abs(previsto)) * 100).toFixed(1) + "%";
+  return { label: `${arrow} ${formatBRL(Math.abs(diff))}`, pct, positive };
 }
 
 function extractMascaraFromKey(rowKey: string): string {
@@ -231,7 +236,6 @@ export function OrcamentoPrevisto({ data, dateField, tipo }: OrcamentoPrevistoPr
       await upsert({
         ano,
         mes,
-        tipo,
         dfc_mascara: dfcMascara,
         categoria_macro: categoriaMacro,
         categoria_lancamento: categoriaLancamento,
@@ -397,6 +401,7 @@ export function OrcamentoPrevisto({ data, dateField, tipo }: OrcamentoPrevistoPr
                           : getPrevistoForRow(row, m);
                         const diff = realizado - previsto;
                         const diffColor = getDiffColor(diff, isRevenue);
+                        const diffInfo = getDiffInfo(diff, previsto, isRevenue);
                         const cellId = `${m}|${row.key}`;
                         const isSaving = savingCells.has(cellId);
 
@@ -453,7 +458,12 @@ export function OrcamentoPrevisto({ data, dateField, tipo }: OrcamentoPrevistoPr
                                 diffColor
                               )}
                             >
-                              {diff !== 0 && previsto !== 0 ? getDiffLabel(diff, isRevenue) : ""}
+                              {diffInfo ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span>{diffInfo.label}</span>
+                                  <span className="text-[10px] opacity-70 font-normal">{diffInfo.pct}</span>
+                                </div>
+                              ) : ""}
                             </TableCell>
                           </React.Fragment>
                         );
