@@ -57,8 +57,8 @@ function filterByDate(data: MovimentacaoFinanceira[], start: string, end: string
 export function FinancialDashboard() {
   const { data, isLoading, error } = useFinanceData();
   const [activeTab, setActiveTab] = useState("visao-geral");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Separate date ranges per dateField so switching tabs doesn't reset user filters
+  const [dateRanges, setDateRanges] = useState<Record<string, { start: string; end: string }>>({});
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -71,21 +71,31 @@ export function FinancialDashboard() {
   const dateField: DateField =
     activeTab === "dre" || activeTab === "a-receber" || activeTab === "a-pagar" || activeTab === "orcamento"
       ? "data_emissao"
-      : "data_pagamento";
+      : "data_pagamento"; // orcamento-dfc, dfc, extrato, visao-geral → data_pagamento
 
-  // Auto-set date range based on active dateField
+  const startDate = dateRanges[dateField]?.start ?? "";
+  const endDate   = dateRanges[dateField]?.end   ?? "";
+
+  const setStartDate = (v: string) =>
+    setDateRanges(prev => ({ ...prev, [dateField]: { start: v, end: prev[dateField]?.end ?? "" } }));
+  const setEndDate = (v: string) =>
+    setDateRanges(prev => ({ ...prev, [dateField]: { start: prev[dateField]?.start ?? "", end: v } }));
+
+  // Auto-set date range on first load for each dateField (only when not yet set)
   useEffect(() => {
-    if (data && data.length > 0) {
+    if (data && data.length > 0 && !dateRanges[dateField]?.start) {
       const dates = data
         .map((d) => (d[dateField] as string | null)?.slice(0, 10))
         .filter(Boolean)
         .sort() as string[];
       if (dates.length) {
-        setStartDate(dates[0]);
-        setEndDate(dates[dates.length - 1]);
+        setDateRanges(prev => ({
+          ...prev,
+          [dateField]: { start: dates[0], end: dates[dates.length - 1] },
+        }));
       }
     }
-  }, [data, dateField]);
+  }, [data, dateField]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -173,7 +183,10 @@ export function FinancialDashboard() {
                 />
               )}
               {activeTab === "orcamento" && (
-                <OrcamentoPrevisto data={filteredData} />
+                <OrcamentoPrevisto data={filteredData} dateField="data_emissao" tipo="dre" />
+              )}
+              {activeTab === "orcamento-dfc" && (
+                <OrcamentoPrevisto data={filteredData} dateField="data_pagamento" tipo="dfc" />
               )}
               {activeTab === "admin" && (
                 <AdminPanel />

@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { buildDFCMatrixExpanded, DFC_CATEGORIES, getSortedMonths, formatBRL, type DFCRow } from "@/lib/finance-utils";
 import type { MovimentacaoFinanceira, DateField, RegimeType } from "@/hooks/useFinanceData";
 import { cn } from "@/lib/utils";
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
 
 interface DFCMatrixProps {
@@ -19,10 +19,11 @@ const ALL_MONTHS = [
 ];
 
 export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
-  const availableMonths = getSortedMonths(data, dateField);
+  const availableMonths = useMemo(() => getSortedMonths(data, dateField), [data, dateField]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showAH, setShowAH] = useState(true);
   const [showAV, setShowAV] = useState(true);
+  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
 
   const years = useMemo(() => {
     const ys = new Set<string>();
@@ -31,14 +32,49 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
   }, [availableMonths]);
 
   const currentYear = years[years.length - 1] || new Date().getFullYear().toString();
+  const [visibleYear, setVisibleYear] = useState(currentYear);
+
+  // Keep visibleYear in sync if currentYear changes (e.g. on data load)
+  useEffect(() => {
+    setVisibleYear(currentYear);
+  }, [currentYear]);
+
+  // When available months change, reset selected to all available in the visible year
+  useEffect(() => {
+    const monthsInYear = availableMonths.filter((m) => m.endsWith(`/${visibleYear}`));
+    setSelectedMonths(new Set(monthsInYear));
+  }, [availableMonths, visibleYear]);
 
   const monthTabs = ALL_MONTHS.map((m) => {
-    const key = `${m}/${currentYear}`;
+    const key = `${m}/${visibleYear}`;
     const hasData = availableMonths.includes(key);
-    return { key, label: `${m}/${currentYear}`, hasData };
+    const selected = selectedMonths.has(key);
+    return { key, label: m, hasData, selected };
   });
 
-  const activeMonths = availableMonths.filter((m) => m.endsWith(`/${currentYear}`));
+  const activeMonths = availableMonths.filter(
+    (m) => m.endsWith(`/${visibleYear}`) && selectedMonths.has(m)
+  );
+
+  function toggleMonth(key: string, hasData: boolean) {
+    if (!hasData) return;
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        // Don't deselect the last one
+        if (next.size <= 1) return prev;
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function selectAllMonths() {
+    const monthsInYear = availableMonths.filter((m) => m.endsWith(`/${visibleYear}`));
+    setSelectedMonths(new Set(monthsInYear));
+  }
   const allRows = useMemo(() => buildDFCMatrixExpanded(data, activeMonths, dateField), [data, activeMonths, dateField]);
 
   const baseByMonth = useMemo(() => {
@@ -88,21 +124,56 @@ export function DFCMatrix({ data, dateField, regime }: DFCMatrixProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex gap-0 overflow-x-auto">
-          {monthTabs.map(({ key, label, hasData }) => (
-            <div
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Year selector */}
+        {years.length > 1 && (
+          <div className="flex gap-0 shrink-0">
+            {years.map((y) => (
+              <button
+                key={y}
+                onClick={() => setVisibleYear(y)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-bold border border-border transition-colors",
+                  visibleYear === y
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-card text-muted-foreground hover:bg-accent"
+                )}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Month tabs — clickable */}
+        <div className="flex gap-0 overflow-x-auto flex-1 min-w-0">
+          {monthTabs.map(({ key, label, hasData, selected }) => (
+            <button
               key={key}
+              onClick={() => toggleMonth(key, hasData)}
+              disabled={!hasData}
+              title={!hasData ? "Sem dados" : selected ? "Clique para remover" : "Clique para incluir"}
               className={cn(
-                "px-4 py-2 text-xs font-medium border border-border whitespace-nowrap",
-                hasData ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground"
+                "px-3 py-1.5 text-xs font-medium border border-border whitespace-nowrap transition-colors",
+                !hasData && "bg-card text-muted-foreground/40 cursor-default",
+                hasData && selected && "bg-primary text-primary-foreground border-primary",
+                hasData && !selected && "bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer"
               )}
             >
               {label}
-            </div>
+            </button>
           ))}
         </div>
-        <div className="flex gap-1 ml-3 flex-shrink-0">
+
+        {/* Limpar/Selecionar todos */}
+        <button
+          onClick={selectAllMonths}
+          className="text-[10px] px-2 py-1 rounded border border-border bg-card text-muted-foreground hover:bg-accent transition-colors shrink-0"
+        >
+          Todos
+        </button>
+
+        <div className="flex gap-1 shrink-0">
           <button
             onClick={() => setShowAH((v) => !v)}
             className={cn(

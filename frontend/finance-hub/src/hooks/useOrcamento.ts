@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { externalSupabase } from "@/integrations/supabase/external-client";
 
+export type OrcamentoTipo = "dre" | "dfc";
+
 export interface OrcamentoRow {
   id?: number;
   ano: number;
   mes: number;
+  tipo: OrcamentoTipo;
   dfc_mascara: string;
   categoria_macro: string;
   categoria_lancamento: string;
@@ -13,7 +16,7 @@ export interface OrcamentoRow {
 
 export type OrcamentoMap = Map<string, number>;
 
-/** Chave única para lookup no mapa: "ano|mes|dfc_mascara|categoria_macro|categoria_lancamento" */
+/** Chave única para lookup no mapa */
 export function orcamentoKey(
   ano: number,
   mes: number,
@@ -31,18 +34,19 @@ export function parseMonthKey(monthKey: string): { mes: number; ano: number } {
   return { mes: monthNames.indexOf(mStr) + 1, ano: Number(yStr) };
 }
 
-function queryKey(ano: number) {
-  return ["orcamento_previsto", ano];
+function queryKey(ano: number, tipo: OrcamentoTipo) {
+  return ["orcamento_previsto", ano, tipo];
 }
 
-export function useOrcamento(ano: number) {
+export function useOrcamento(ano: number, tipo: OrcamentoTipo = "dre") {
   return useQuery<OrcamentoRow[]>({
-    queryKey: queryKey(ano),
+    queryKey: queryKey(ano, tipo),
     queryFn: async () => {
       const { data, error } = await externalSupabase
         .from("orcamento_previsto")
         .select("*")
         .eq("ano", ano)
+        .eq("tipo", tipo)
         .order("mes");
       if (error) throw error;
       return (data as OrcamentoRow[]) ?? [];
@@ -61,7 +65,7 @@ export function buildOrcamentoMap(rows: OrcamentoRow[]): OrcamentoMap {
   return map;
 }
 
-export function useUpsertOrcamento(ano: number) {
+export function useUpsertOrcamento(ano: number, tipo: OrcamentoTipo = "dre") {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -72,17 +76,18 @@ export function useUpsertOrcamento(ano: number) {
           {
             ano: row.ano,
             mes: row.mes,
+            tipo: row.tipo,
             dfc_mascara: row.dfc_mascara,
             categoria_macro: row.categoria_macro,
             categoria_lancamento: row.categoria_lancamento,
             valor_previsto: row.valor_previsto,
           },
-          { onConflict: "ano,mes,dfc_mascara,categoria_macro,categoria_lancamento" }
+          { onConflict: "ano,mes,tipo,dfc_mascara,categoria_macro,categoria_lancamento" }
         );
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKey(ano) });
+      queryClient.invalidateQueries({ queryKey: queryKey(ano, tipo) });
     },
   });
 }

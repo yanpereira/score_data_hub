@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { buildDFCMatrixExpanded, DFC_CATEGORIES, getSortedMonths, formatBRL, type DFCRow } from "@/lib/finance-utils";
-import type { MovimentacaoFinanceira } from "@/hooks/useFinanceData";
+import type { MovimentacaoFinanceira, DateField } from "@/hooks/useFinanceData";
 import {
   useOrcamento,
   useUpsertOrcamento,
@@ -10,6 +10,7 @@ import {
   parseMonthKey,
   orcamentoKey,
   type OrcamentoMap,
+  type OrcamentoTipo,
 } from "@/hooks/useOrcamento";
 import { cn } from "@/lib/utils";
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
@@ -18,6 +19,8 @@ import { toast } from "sonner";
 
 interface OrcamentoPrevistoProps {
   data: MovimentacaoFinanceira[];
+  dateField: DateField;
+  tipo: OrcamentoTipo;
 }
 
 const ALL_MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -98,8 +101,6 @@ function isRevenueRow(dfcMascara: string): boolean {
 
 function getDiffColor(diff: number, isRevenue: boolean): string {
   if (diff === 0) return "text-muted-foreground";
-  // Para receita: positivo (realizou mais que previsto) = verde
-  // Para despesa: negativo (gastou menos que previsto) = verde
   const positive = isRevenue ? diff > 0 : diff < 0;
   return positive ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400";
 }
@@ -111,9 +112,7 @@ function getDiffLabel(diff: number, isRevenue: boolean): string {
   return `${arrow} ${formatBRL(Math.abs(diff))}`;
 }
 
-// ─── Pega dfc_mascara e categoria_macro a partir da key do DFCRow ─────────────
 function extractMascaraFromKey(rowKey: string): string {
-  // Key format: "dfc_mascara__categoria_macro__categoria_lancamento"
   return rowKey.split("__")[0];
 }
 
@@ -122,31 +121,33 @@ function extractCategoriaMacroFromKey(rowKey: string): string {
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
-export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
+export function OrcamentoPrevisto({ data, dateField, tipo }: OrcamentoPrevistoProps) {
+  const availableMonths = useMemo(() => getSortedMonths(data, dateField), [data, dateField]);
+
   const currentYear = useMemo(() => {
-    const availableMonths = getSortedMonths(data, "data_emissao");
     const years = new Set<string>();
     availableMonths.forEach((m) => years.add(m.split("/")[1]));
     const sorted = Array.from(years).sort();
     return Number(sorted[sorted.length - 1] ?? new Date().getFullYear());
-  }, [data]);
+  }, [availableMonths]);
 
-  const availableMonths = getSortedMonths(data, "data_emissao");
-  const activeMonths = availableMonths.filter((m) => m.endsWith(`/${currentYear}`));
+  const activeMonths = useMemo(
+    () => availableMonths.filter((m) => m.endsWith(`/${currentYear}`)),
+    [availableMonths, currentYear]
+  );
 
   const allRows = useMemo(
-    () => buildDFCMatrixExpanded(data, activeMonths, "data_emissao"),
-    [data, activeMonths]
+    () => buildDFCMatrixExpanded(data, activeMonths, dateField),
+    [data, activeMonths, dateField]
   );
 
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  // Track which cells are currently saving: key = "monthKey|rowKey"
   const [savingCells, setSavingCells] = useState<Set<string>>(new Set());
 
-  const { data: orcamentoRows = [] } = useOrcamento(currentYear);
+  const { data: orcamentoRows = [] } = useOrcamento(currentYear, tipo);
   const orcamentoMap: OrcamentoMap = useMemo(() => buildOrcamentoMap(orcamentoRows), [orcamentoRows]);
 
-  const { mutateAsync: upsert } = useUpsertOrcamento(currentYear);
+  const { mutateAsync: upsert } = useUpsertOrcamento(currentYear, tipo);
 
   const toggle = useCallback((key: string) => {
     setExpanded((prev) => {
@@ -171,7 +172,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
     return true;
   };
 
-  // Previsto somado para level 0 e 1 a partir dos level 2
   function getPrevistoForRow(row: DFCRow, monthKey: string): number {
     const { mes, ano } = parseMonthKey(monthKey);
 
@@ -183,16 +183,10 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
       return orcamentoMap.get(k) ?? 0;
     }
 
-    if (row.isSubtotal) {
-      // Subtotais calculados dinamicamente abaixo (não aqui)
-      return 0;
-    }
+    if (row.isSubtotal) return 0;
 
-    // level 0 e 1: soma dos filhos nível 2
-    const prefix = row.level === 0 ? `${row.key}__` : `${row.key}__`;
-    const child2Rows = allRows.filter(
-      (r) => r.level === 2 && r.key.startsWith(prefix)
-    );
+    const prefix = `${row.key}__`;
+    const child2Rows = allRows.filter((r) => r.level === 2 && r.key.startsWith(prefix));
     return child2Rows.reduce((sum, child) => {
       const dfcMascara = extractMascaraFromKey(child.key);
       const categoriaMacro = extractCategoriaMacroFromKey(child.key);
@@ -201,7 +195,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
     }, 0);
   }
 
-  // Previsto para subtotais (calculado a partir dos top-level rows)
   function getPrevistoSubtotal(rowKey: string, monthKey: string): number {
     const fat = allRows.find((r) => r.key === DFC_CATEGORIES.faturamento);
     const custos = allRows.find((r) => r.key === DFC_CATEGORIES.custosVariaveis);
@@ -225,11 +218,7 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
     }
   }
 
-  async function handleCommit(
-    row: DFCRow,
-    monthKey: string,
-    newValue: number
-  ) {
+  async function handleCommit(row: DFCRow, monthKey: string, newValue: number) {
     const dfcMascara = extractMascaraFromKey(row.key);
     const categoriaMacro = extractCategoriaMacroFromKey(row.key);
     const categoriaLancamento = row.label;
@@ -239,7 +228,15 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
     setSavingCells((prev) => new Set(prev).add(cellId));
 
     try {
-      await upsert({ ano, mes, dfc_mascara: dfcMascara, categoria_macro: categoriaMacro, categoria_lancamento: categoriaLancamento, valor_previsto: newValue });
+      await upsert({
+        ano,
+        mes,
+        tipo,
+        dfc_mascara: dfcMascara,
+        categoria_macro: categoriaMacro,
+        categoria_lancamento: categoriaLancamento,
+        valor_previsto: newValue,
+      });
     } catch {
       toast.error("Erro ao salvar o valor previsto.");
     } finally {
@@ -256,8 +253,11 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
     return { key, hasData: activeMonths.includes(key) };
   });
 
-  // Total previsto geral (Lucro Líquido) por mês para o summary header
   const hasExpandableRows = allRows.some((r) => r.childKeys?.length);
+
+  const title = tipo === "dfc"
+    ? "Planejamento Orçamentário — DFC (Caixa)"
+    : "Planejamento Orçamentário — DRE (Competência)";
 
   return (
     <div className="space-y-4">
@@ -300,7 +300,7 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
         <div className="p-4 pb-2 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold text-foreground">
-              Planejamento Orçamentário — {currentYear}
+              {title} — {currentYear}
             </h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               Clique nos valores da coluna <span className="font-medium text-primary">Previsto</span> para editar. Totais são calculados automaticamente.
@@ -312,7 +312,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
           <div className="min-w-[900px]">
             <Table>
               <TableHeader>
-                {/* Linha 1: mês como grupo */}
                 <TableRow className="bg-muted/50">
                   <TableHead
                     rowSpan={2}
@@ -330,7 +329,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
                     </TableHead>
                   ))}
                 </TableRow>
-                {/* Linha 2: Previsto / Realizado / Diferença */}
                 <TableRow className="bg-muted/30">
                   {activeMonths.map((m) => (
                     <React.Fragment key={`sub-${m}`}>
@@ -365,7 +363,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
                         row.level === 2 && "bg-background/50"
                       )}
                     >
-                      {/* Label da conta */}
                       <TableCell
                         className={cn(
                           "sticky left-0 z-10 text-xs whitespace-nowrap border-r border-border",
@@ -393,7 +390,6 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
                         </span>
                       </TableCell>
 
-                      {/* Colunas por mês */}
                       {activeMonths.map((m) => {
                         const realizado = row.values[m] ?? 0;
                         const previsto = row.isSubtotal
@@ -457,9 +453,7 @@ export function OrcamentoPrevisto({ data }: OrcamentoPrevistoProps) {
                                 diffColor
                               )}
                             >
-                              {diff !== 0 && previsto !== 0
-                                ? getDiffLabel(diff, isRevenue)
-                                : ""}
+                              {diff !== 0 && previsto !== 0 ? getDiffLabel(diff, isRevenue) : ""}
                             </TableCell>
                           </React.Fragment>
                         );

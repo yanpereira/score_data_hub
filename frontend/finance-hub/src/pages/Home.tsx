@@ -24,7 +24,7 @@ const MODULES = [
     title: "RH",
     description: "Gestão de pessoas, folha e indicadores de capital humano.",
     icon: Users,
-    disabled: true,
+    route: "/rh",
     accentColor: "bg-chart-red",
   },
 ];

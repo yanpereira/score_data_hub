@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import { FinancialDashboard } from "./components/dashboard/FinancialDashboard";
+import { RHDashboard } from "./components/rh/RHDashboard";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,11 @@ const App = () => {
             <Route path="/financeiro" element={
               <ProtectedRoute>
                 <FinancialDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/rh" element={
+              <ProtectedRoute>
+                <RHDashboard />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
