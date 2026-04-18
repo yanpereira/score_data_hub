@@ -47,7 +47,7 @@ export function ContasReceber({ data, dateField }: { data: MovimentacaoFinanceir
       .map((d) => ({
         date: ((view === "pendentes" ? d[dateField] : d.data_pagamento) as string | null)?.slice(0, 10) ?? "",
         descricao: String(d.descricao ?? ""),
-        cliente: String(d.nome_contato ?? ""),
+        cliente: String(d.cliente_fornecedor ?? ""),
         categoria: String(d.categoria_lancamento ?? ""),
         grupo: String(d.dfc_grupo ?? ""),
         valor: Number(d.valor_liquido ?? 0),
